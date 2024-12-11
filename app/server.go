@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-func Response() string {
-	return "HTTP/1.1 200 OK\r\n\r\n"
-}
-
 func handleConnection(c net.Conn) {
 	c.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 }
