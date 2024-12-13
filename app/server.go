@@ -13,22 +13,33 @@ func extractEchoString(content string) string {
 	match := re.FindStringSubmatch(content)
 	return match[1]
 }
+
+func extractUserAgentString(content string) string {
+	re := regexp.MustCompile(`GET /user-agent HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: (.*)\r\n\r\n`)
+	match := re.FindStringSubmatch(content)
+	fmt.Println(match)
+	return match[1]
+}
+
 func handleConnection(conn net.Conn) {
 	req := make([]byte, 1024)
 	conn.Read(req)
 	content := string(req)
 
-	if !strings.HasPrefix(content, "GET / HTTP/1.1") && !strings.HasPrefix(content, "GET /echo/") { // TODO: do this better with regex
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		conn.Close()
-	}
-
-	if strings.HasPrefix(content, "GET / HTTP/1.1") {
+	switch {
+	case strings.HasPrefix(content, "GET / HTTP/1.1"):
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else {
+	case strings.HasPrefix(content, "GET /echo/"):
 		echoString := extractEchoString(content)
 		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoString), echoString)
 		conn.Write([]byte(response))
+	case strings.HasPrefix(content, "GET /user-agent"):
+		userAgentString := extractUserAgentString(content)
+		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgentString), userAgentString)
+		conn.Write([]byte(response))
+	default:
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		conn.Close()
 	}
 }
 
