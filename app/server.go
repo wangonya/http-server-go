@@ -17,7 +17,6 @@ func extractEchoString(content string) string {
 func extractUserAgentString(content string) string {
 	re := regexp.MustCompile(`GET /user-agent HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: (.*)\r\n\r\n`)
 	match := re.FindStringSubmatch(content)
-	fmt.Println(match)
 	return match[1]
 }
 
