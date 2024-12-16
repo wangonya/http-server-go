@@ -26,17 +26,13 @@ func extractFilePath(content string) string {
 	return match[1]
 }
 
-func readFile(path string) ([]byte, int, error) {
-	f, err := os.Open(path)
+func readFile(path string) ([]byte, error) {
+	f, err := os.ReadFile(path)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	defer f.Close()
 
-	data := make([]byte, 2048)
-	count, err := f.Read(data)
-
-	return data, count, err
+	return f, err
 }
 
 func handleConnection(conn net.Conn) {
@@ -60,13 +56,13 @@ func handleConnection(conn net.Conn) {
 	case strings.HasPrefix(content, "GET /files"):
 		filePath := extractFilePath(content)
 		fmt.Println(os.Args[2] + filePath)
-		f, i, err := readFile(os.Args[2] + filePath)
+		f, err := readFile(os.Args[2] + filePath)
 
 		if err != nil {
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 			return
 		}
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", i, f)
+		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(f), f)
 		conn.Write([]byte(response))
 	default:
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
