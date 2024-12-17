@@ -4,73 +4,18 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 	"strings"
 )
 
-func extractEchoString(content string) string {
-	re := regexp.MustCompile(`GET /echo/(.*) `)
-	match := re.FindStringSubmatch(content)
-	return match[1]
-}
+const (
+	MaxBufferSize = 1024
 
-func extractUserAgentString(content string) string {
-	re := regexp.MustCompile(`GET /user-agent HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: (.*)\r\n\r\n`)
-	match := re.FindStringSubmatch(content)
-	return match[1]
-}
-
-func extractFilePath(content string) string {
-	re := regexp.MustCompile(`GET /files/(.*) `)
-	match := re.FindStringSubmatch(content)
-	return match[1]
-}
-
-func readFile(path string) ([]byte, error) {
-	f, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, err
-}
-
-func handleConnection(conn net.Conn) {
-	req := make([]byte, 1024)
-	conn.Read(req)
-	content := string(req)
-
-	defer conn.Close()
-
-	switch {
-	case strings.HasPrefix(content, "GET / HTTP/1.1"):
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	case strings.HasPrefix(content, "GET /echo/"):
-		echoString := extractEchoString(content)
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoString), echoString)
-		conn.Write([]byte(response))
-	case strings.HasPrefix(content, "GET /user-agent"):
-		userAgentString := extractUserAgentString(content)
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgentString), userAgentString)
-		conn.Write([]byte(response))
-	case strings.HasPrefix(content, "GET /files"):
-		filePath := extractFilePath(content)
-		fmt.Println(os.Args[2] + filePath)
-		f, err := readFile(os.Args[2] + filePath)
-
-		if err != nil {
-			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-			return
-		}
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(f), f)
-		conn.Write([]byte(response))
-	default:
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-	}
-}
+	Host = "0.0.0.0"
+	Port = 4221
+)
 
 func main() {
-	l, err := net.Listen("tcp", "0.0.0.0:4221")
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Host, Port))
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
 		fmt.Println(err)
@@ -87,4 +32,67 @@ func main() {
 
 		go handleConnection(conn)
 	}
+}
+
+func handleConnection(c net.Conn) {
+	defer c.Close()
+
+	buffer := make([]byte, MaxBufferSize)
+	bytes, err := c.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading request: ", err.Error())
+		return
+	}
+
+	request, err := ParseRequest(buffer[:bytes])
+	if err != nil {
+		fmt.Println("Error parsing request: ", err.Error())
+		return
+	}
+
+	response := handleRequest(request)
+	c.Write([]byte(response.String()))
+}
+
+func handleRequest(r HTTPRequest) HTTPResponse {
+	response := HTTPResponse{StatusLine: NotFound}
+
+	switch {
+	case r.URI == "/":
+		response.StatusLine = OK
+	case strings.Contains(r.URI, "/echo/"):
+		echoString := strings.Split(r.URI, "/")[2]
+		response.StatusLine = OK
+		response.ContentType = "text/plain"
+		response.ContentLength = len(echoString)
+		response.Body = echoString
+	case r.UserAgent != "":
+		response.StatusLine = OK
+		response.ContentType = "text/plain"
+		response.ContentLength = len(r.UserAgent)
+		response.Body = r.UserAgent
+	case strings.Contains(r.URI, "/files/"):
+		filePath := strings.Split(r.URI, "/")[2]
+
+		if r.Method == "GET" {
+			data, err := os.ReadFile(os.Args[2] + filePath)
+			if err != nil {
+				break
+			}
+
+			response.StatusLine = OK
+			response.ContentType = "application/octet-stream"
+			response.ContentLength = len(data)
+			response.Body = string(data)
+		} else {
+			err := os.WriteFile(os.Args[2]+filePath, []byte(r.Body), 0644)
+			if err != nil {
+				break
+			}
+
+			response.StatusLine = Created
+		}
+	}
+
+	return response
 }
