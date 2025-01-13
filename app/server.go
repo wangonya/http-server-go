@@ -61,6 +61,9 @@ func handleRequest(r HTTPRequest) HTTPResponse {
 	case r.URI == "/":
 		response.StatusLine = OK
 	case strings.Contains(r.URI, "/echo/"):
+		if r.AcceptEncoding == "gzip" {
+			response.ContentEncoding = "gzip"
+		}
 		echoString := strings.Split(r.URI, "/")[2]
 		response.StatusLine = OK
 		response.ContentType = "text/plain"

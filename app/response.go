@@ -12,8 +12,9 @@ const (
 type HTTPResponse struct {
 	StatusLine string
 
-	ContentType   string
-	ContentLength int
+	ContentEncoding string
+	ContentType     string
+	ContentLength   int
 
 	Body string
 }
@@ -27,6 +28,10 @@ func (r HTTPResponse) String() string {
 
 	if r.ContentLength != 0 {
 		response += fmt.Sprintf("Content-Length: %d\r\n", r.ContentLength)
+	}
+
+	if len(r.ContentEncoding) != 0 {
+		response += fmt.Sprintf("Content-Encoding: %s\r\n", r.ContentEncoding)
 	}
 
 	response += "\r\n"

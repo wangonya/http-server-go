@@ -11,11 +11,12 @@ type HTTPRequest struct {
 	URI      string
 	Protocol string
 
-	Host          string
-	UserAgent     string
-	Accept        string
-	ContentType   string
-	ContentLength int
+	Host           string
+	UserAgent      string
+	Accept         string
+	AcceptEncoding string
+	ContentType    string
+	ContentLength  int
 
 	Body string
 }
@@ -47,6 +48,10 @@ func ParseRequest(b []byte) (HTTPRequest, error) {
 
 		if strings.Contains(v, "Content-Length") {
 			r.ContentLength, _ = strconv.Atoi(strings.Split(v, " ")[1])
+		}
+
+		if strings.Contains(v, "Accept-Encoding") {
+			r.AcceptEncoding = strings.Split(v, " ")[1]
 		}
 
 		if line == len(bufferString)-2 && !strings.HasSuffix(v, "\r\n") {
