@@ -50,8 +50,8 @@ func ParseRequest(b []byte) (HTTPRequest, error) {
 			r.ContentLength, _ = strconv.Atoi(strings.Split(v, " ")[1])
 		}
 
-		if strings.Contains(v, "Accept-Encoding") {
-			r.AcceptEncoding = strings.Split(v, " ")[1]
+		if strings.Contains(v, "Accept-Encoding") && strings.Contains(v, "gzip") {
+			r.AcceptEncoding = "gzip"
 		}
 
 		if line == len(bufferString)-2 && !strings.HasSuffix(v, "\r\n") {
