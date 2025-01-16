@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"net"
 	"os"
@@ -61,10 +63,16 @@ func handleRequest(r HTTPRequest) HTTPResponse {
 	case r.URI == "/":
 		response.StatusLine = OK
 	case strings.Contains(r.URI, "/echo/"):
+		echoString := strings.Split(r.URI, "/")[2]
 		if r.AcceptEncoding == "gzip" {
 			response.ContentEncoding = "gzip"
+			buffer := new(bytes.Buffer)
+			gzWrite := gzip.NewWriter(buffer)
+			gzWrite.Write([]byte(echoString))
+			gzWrite.Close()
+			fmt.Println(buffer.String())
+			echoString = buffer.String()
 		}
-		echoString := strings.Split(r.URI, "/")[2]
 		response.StatusLine = OK
 		response.ContentType = "text/plain"
 		response.ContentLength = len(echoString)

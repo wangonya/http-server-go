@@ -36,6 +36,8 @@ func (r HTTPResponse) String() string {
 
 	response += "\r\n"
 
+	fmt.Println(response)
+
 	if len(r.Body) != 0 {
 		response += r.Body
 	}
