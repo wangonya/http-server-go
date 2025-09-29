@@ -39,21 +39,27 @@ func main() {
 func handleConnection(c net.Conn) {
 	defer c.Close()
 
-	buffer := make([]byte, MaxBufferSize)
-	bytes, err := c.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading request: ", err.Error())
-		return
-	}
+	for {
+		buffer := make([]byte, MaxBufferSize)
+		bytes, err := c.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading request: ", err.Error())
+			return
+		}
 
-	request, err := ParseRequest(buffer[:bytes])
-	if err != nil {
-		fmt.Println("Error parsing request: ", err.Error())
-		return
-	}
+		if bytes == 0 {
+			break
+		}
 
-	response := handleRequest(request)
-	c.Write([]byte(response.String()))
+		request, err := ParseRequest(buffer[:bytes])
+		if err != nil {
+			fmt.Println("Error parsing request: ", err.Error())
+			return
+		}
+
+		response := handleRequest(request)
+		c.Write([]byte(response.String()))
+	}
 }
 
 func handleRequest(r HTTPRequest) HTTPResponse {
