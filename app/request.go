@@ -16,6 +16,7 @@ type HTTPRequest struct {
 	Accept         string
 	AcceptEncoding string
 	ContentType    string
+	Connection     string
 	ContentLength  int
 
 	Body string
@@ -52,6 +53,10 @@ func ParseRequest(b []byte) (HTTPRequest, error) {
 
 		if strings.Contains(v, "Accept-Encoding") && strings.Contains(v, "gzip") {
 			r.AcceptEncoding = "gzip"
+		}
+
+		if strings.Contains(v, "Connection") {
+			r.Connection = strings.Split(v, " ")[1]
 		}
 
 		if line == len(bufferString)-2 && !strings.HasSuffix(v, "\r\n") {

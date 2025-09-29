@@ -47,10 +47,6 @@ func handleConnection(c net.Conn) {
 			return
 		}
 
-		if bytes == 0 {
-			break
-		}
-
 		request, err := ParseRequest(buffer[:bytes])
 		if err != nil {
 			fmt.Println("Error parsing request: ", err.Error())
@@ -59,11 +55,15 @@ func handleConnection(c net.Conn) {
 
 		response := handleRequest(request)
 		c.Write([]byte(response.String()))
+
+		if response.Connection == "close" {
+			break
+		}
 	}
 }
 
 func handleRequest(r HTTPRequest) HTTPResponse {
-	response := HTTPResponse{StatusLine: NotFound}
+	response := HTTPResponse{StatusLine: NotFound, Connection: r.Connection}
 
 	switch {
 	case r.URI == "/":

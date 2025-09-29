@@ -14,6 +14,7 @@ type HTTPResponse struct {
 
 	ContentEncoding string
 	ContentType     string
+	Connection      string
 	ContentLength   int
 
 	Body string
@@ -34,9 +35,11 @@ func (r HTTPResponse) String() string {
 		response += fmt.Sprintf("Content-Encoding: %s\r\n", r.ContentEncoding)
 	}
 
-	response += "\r\n"
+	if len(r.Connection) != 0 {
+		response += fmt.Sprintf("Connection: %s\r\n", r.Connection)
+	}
 
-	fmt.Println(response)
+	response += "\r\n"
 
 	if len(r.Body) != 0 {
 		response += r.Body
